@@ -128,6 +128,7 @@ export function mapUITaskToDatabase(uiTask: {
   assignees?: string[];
   department?: string;
   created_by: string;
+  documentLinks?: string[]; // Add document links support
 }): Record<string, any> {
   // Build the payload with transformations
   const payload = {
@@ -138,8 +139,8 @@ export function mapUITaskToDatabase(uiTask: {
     start_date: normaliseDateToYMD(uiTask.startDate),
     due_date: normaliseDateToYMD(uiTask.dueDate),
     created_by: uiTask.created_by,
-    assigned_to: uiTask.assignees?.[0] ?? null, // Take first assignee
     department: safeTrim(uiTask.department) ?? 'Production', // Default to Production
+    document_links: uiTask.documentLinks || [], // Map document links to database field
   };
   
   // Filter out undefined values and return

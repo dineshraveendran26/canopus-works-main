@@ -25,6 +25,7 @@ export interface Task {
   comments: any[]
   department?: string
   attachments?: any[] // Add attachments field
+  documentLinks?: string[] // Add document links for database storage
 }
 
 // Supabase task interface for database operations
@@ -36,14 +37,9 @@ export interface SupabaseTask {
   status: "Todo" | "In Progress" | "Completed"
   start_date?: string
   due_date?: string
-  estimated_hours?: number
-  actual_hours?: number
   created_by: string
-  // assigned_to field removed - now handled via task_assignments table
   department?: string
-  machine_id?: string
-  batch_id?: string
-  quality_score?: number
+  document_links?: string[] // For attachments
   created_at: string
   updated_at: string
   completed_at?: string
@@ -78,8 +74,7 @@ export interface Subtask {
   description?: string
   completed: boolean
   order_index: number
-  estimated_hours?: number
-  actual_hours?: number
+  document_links?: string[] // For attachments
   completed_at?: string
   created_at: string
   updated_at: string
@@ -104,14 +99,9 @@ export interface CreateTaskData {
   status: "Todo" | "In Progress" | "Completed"
   start_date?: string
   due_date?: string
-  estimated_hours?: number | null
-  actual_hours?: number | null
   created_by: string
-  // assigned_to field removed
   department?: string | null
-  machine_id?: string | null
-  batch_id?: string | null
-  quality_score?: number | null
+  document_links?: string[] // For attachments
 }
 
 // New interface for creating tasks with multiple assignees
@@ -154,6 +144,14 @@ export function useTasks() {
     // Get subtasks for this task from the subtasks state
     const taskSubtasks = subtasks.filter(st => st.task_id === supabaseTask.id)
     
+    // Convert document_links to attachments format for UI
+    const attachments = (supabaseTask.document_links || []).map((link: string, index: number) => ({
+      id: `attachment-${index}`,
+      description: `Document ${index + 1}`,
+      link: link,
+      createdAt: supabaseTask.created_at || new Date().toISOString()
+    }))
+    
     return {
       id: supabaseTask.id,
       title: supabaseTask.title,
@@ -169,6 +167,8 @@ export function useTasks() {
       })), // Include actual subtasks with assignees
       comments: [], // Will be populated separately
       department: supabaseTask.department,
+      attachments: attachments,
+      documentLinks: supabaseTask.document_links || []
     }
   }
 
@@ -232,7 +232,8 @@ export function useTasks() {
       dueDate: uiTask.dueDate,
       assignees: uiTask.assignees,
       department: uiTask.department,
-      created_by: user.id
+      created_by: user.id,
+      documentLinks: uiTask.documentLinks || [] // Pass document links
     });
     
     console.log('🔄 Mapped data using utilities:', mappedData);
@@ -246,7 +247,8 @@ export function useTasks() {
       start_date: mappedData.start_date || undefined,
       due_date: mappedData.due_date || undefined,
       created_by: mappedData.created_by || '',
-      department: mappedData.department || null
+      department: mappedData.department || null,
+      document_links: mappedData.document_links || undefined
     };
     
     console.log('🔄 Final supabaseTaskData:', supabaseTaskData);

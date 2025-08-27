@@ -108,6 +108,10 @@ export function TaskModal({ open, onOpenChange, task, mode = "create" }: TaskMod
     }
 
     console.log('🔄 Building taskData object...')
+    
+    // Process attachments for database storage
+    const documentLinks = attachments.map(att => att.link).filter(link => link.trim() !== '')
+    
     const taskData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
@@ -120,6 +124,7 @@ export function TaskModal({ open, onOpenChange, task, mode = "create" }: TaskMod
       subtasks,
       comments,
       attachments,
+      documentLinks, // Add processed document links for database
     }
 
     console.log('🚀 Final Task Data:', taskData)
@@ -578,48 +583,57 @@ export function TaskModal({ open, onOpenChange, task, mode = "create" }: TaskMod
 
                 <div className="space-y-2">
                   <Label htmlFor="attachments" className="text-sm font-medium">Attachments</Label>
-                  <Button
-                    id="attachments"
-                    name="attachments"
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAttachmentPopup(true)}
-                    className="w-full h-10 justify-start text-left font-normal text-sm"
-                  >
-                    <Paperclip className="mr-2 h-4 w-4" />
-                    Add Attachment
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      id="attachments"
+                      name="attachments"
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowAttachmentPopup(true)}
+                      className="w-full h-10 justify-start text-left font-normal text-sm"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Add Attachment
+                    </Button>
 
-                  {attachments.length > 0 && (
-                    <div className="space-y-2 mt-3">
-                      {attachments.map((attachment) => (
-                        <div key={attachment.id} className="border-[--border] rounded-lg p-3 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{attachment.description}</p>
-                              <a
-                                href={attachment.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
-                              >
-                                {attachment.link}
-                              </a>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveAttachment(attachment.id)}
-                              className="text-muted-foreground hover:text-destructive ml-2 flex-shrink-0"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          {attachments.length} attachment{attachments.length !== 1 ? 's' : ''} added
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {attachments.map((attachment) => (
+                          <div key={attachment.id} className="border-[--border] rounded-lg p-3 space-y-2 bg-muted/30">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                  <p className="text-sm font-medium text-foreground truncate">{attachment.description}</p>
+                                </div>
+                                <a
+                                  href={attachment.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:text-blue-800 underline break-all hover:bg-blue-50 px-1 py-0.5 rounded"
+                                >
+                                  {attachment.link}
+                                </a>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveAttachment(attachment.id)}
+                                className="text-muted-foreground hover:text-destructive ml-2 flex-shrink-0"
+                                title="Remove attachment"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -682,38 +696,55 @@ export function TaskModal({ open, onOpenChange, task, mode = "create" }: TaskMod
       <Dialog open={showAttachmentPopup} onOpenChange={setShowAttachmentPopup}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Attachment</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="w-5 h-5" />
+              Add Attachment
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="attachment-description" className="text-sm font-medium">
-                Description
+                Description *
               </Label>
               <Input
                 id="attachment-description"
                 value={attachmentForm.description}
                 onChange={(e) => setAttachmentForm((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Enter attachment description..."
+                placeholder="e.g., Project Requirements Document, Design Mockup..."
                 className="w-full"
+                required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="attachment-link" className="text-sm font-medium">
-                Link
+                Link/URL *
               </Label>
               <Input
                 id="attachment-link"
                 value={attachmentForm.link}
                 onChange={(e) => setAttachmentForm((prev) => ({ ...prev, link: e.target.value }))}
-                placeholder="Paste Google Drive link or any URL..."
+                placeholder="https://drive.google.com/... or any URL"
                 className="w-full"
+                required
               />
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Add a description and link for your attachment. Links will be clickable and open in a new tab.
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 text-xs font-bold">i</span>
+                </div>
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">Supported attachment types:</p>
+                  <ul className="text-xs space-y-1 text-blue-700">
+                    <li>• Google Drive, OneDrive, Dropbox links</li>
+                    <li>• GitHub repositories, Jira tickets</li>
+                    <li>• Any web URL or document link</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
             <div className="flex justify-end gap-3">
               <Button
@@ -730,7 +761,7 @@ export function TaskModal({ open, onOpenChange, task, mode = "create" }: TaskMod
                 disabled={!attachmentForm.description.trim() || !attachmentForm.link.trim()}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Add Link
+                Add Attachment
               </Button>
             </div>
           </div>
